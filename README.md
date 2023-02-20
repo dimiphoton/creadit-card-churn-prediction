@@ -1,2 +1,2 @@
-# creadit-card-churn-prediction
+# credit-card-churn-prediction
 a team work data engineering- machine learning - deployment
