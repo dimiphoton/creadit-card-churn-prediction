@@ -1,7 +1,31 @@
-# library doc string
+"""
+Author: Dimitri 
+Date Created: 2023-02-23
+
+This scripts provides several functions
+related to the credit churn data analysis
+"""
 
 
 # import libraries
+#import shap
+#import joblib
+import os
+from sklearn.metrics import classification_report
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+
+from sklearn.preprocessing import normalize
+from sklearn.model_selection import train_test_split
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+
+from sklearn.metrics import plot_roc_curve, classification_report
 import os
 os.environ['QT_QPA_PLATFORM']='offscreen'
 
@@ -118,8 +142,6 @@ def perform_feature_engineering(df, response):
     return X_train, X_test, y_train, y_test
 
 
-from sklearn.metrics import classification_report
-import matplotlib.pyplot as plt
 
 def classification_report_image(y_train, y_test, y_train_preds_lr, y_train_preds_rf, y_test_preds_lr, y_test_preds_rf):
     '''
@@ -178,8 +200,6 @@ def classification_report_image(y_train, y_test, y_train_preds_lr, y_train_preds
     plt.savefig('./images/classification_report.png')
 
 
-import matplotlib.pyplot as plt
-
 def feature_importance_plot(model, X_data, output_pth):
     """
     Creates and stores the feature importances in pth
@@ -200,15 +220,21 @@ def feature_importance_plot(model, X_data, output_pth):
     importances = model.feature_importances_
     indices = np.argsort(importances)[::-1]
     names = [X_data.columns[i] for i in indices]
-    
+
     fig, ax = plt.subplots(figsize=(12,8))
     ax.bar(range(X_data.shape[1]), importances[indices])
     ax.set_xticks(range(X_data.shape[1]))
     ax.set_xticklabels(names, rotation=90)
     ax.set_title("Feature Importances")
     fig.tight_layout()
-    
+
     plt.savefig(output_pth)
 
-    
-    
+
+if __name__ == "__main__":
+    current_file = os.path.abspath(__file__)
+    current_directory = os.path.dirname(current_file)
+    file_path = 'data/bank_data.csv'
+    print("PATH "+os.path.join(current_directory, file_path))
+    df = import_data(os.path.join(current_directory, file_path))
+    perform_eda(df)
