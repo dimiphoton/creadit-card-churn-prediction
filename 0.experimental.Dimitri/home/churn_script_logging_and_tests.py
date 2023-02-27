@@ -1,91 +1,145 @@
+"""
+Author: Dimitri MARCHAND
+Date Created: 23 Feb 2022
+This file contains tests of the main functions of churn_library.py
+"""
 import os
 import logging
-import churn_library_solution as cls
+import pytest
+import pandas as pd
+import joblib
+from churn_library import import_data, perform_eda, encode_categorical_features,\
+    perform_feature_engineering
+from constants import DATA_PATH, IMG_PATH, LOG_PATH, cat_columns, keep_cols, MODEL_PATH
+
+
+@pytest.fixture(scope="module")
+def path():
+    """
+    pytest fixture that allows to share path to the dataset between
+    testing functions
+    input: None
+    output: path to the data
+    """
+    return DATA_PATH
+
+
+@pytest.fixture(scope="module")
+def data():
+    """
+    pytest fixture that allows to share original dataset between
+    testing functions
+    input: None
+    output: original dataset in pandas dataframe format
+    """
+    df = pd.read_csv(DATA_PATH)
+    df['Churn'] = df['Attrition_Flag'].apply(
+        lambda val: 0 if val == "Existing Customer" else 1)
+    return df
+
 
 logging.basicConfig(
-    filename='./logs/churn_library.log',
+    filename=LOG_PATH,
     level=logging.INFO,
     filemode='w',
-    format='%(name)s - %(levelname)s - %(message)s')
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-def test_import(import_data):
-    '''
-    test data import
-    '''
+
+def test_import(path):
+    """
+    test data import - this example is completed for you to assist with the other test functions
+    input: path to the datatset csv file
+    output: None
+    """
     try:
-        df = import_data("./data/bank_data.csv")
+        df = import_data(path)
         logging.info("Testing import_data: SUCCESS")
     except FileNotFoundError as err:
-        logging.error("Testing import_eda: The file wasn't found")
+        logging.error("Testing test_import: The file wasn't found")
         raise err
 
     try:
         assert df.shape[0] > 0
         assert df.shape[1] > 0
+        logging.info("imported dataframe is not empty")
     except AssertionError as err:
-        logging.error("Testing import_data: The file doesn't appear to have rows and columns")
+        logging.error(
+            "Testing import_data: The file doesn't appear to have rows and columns")
+        raise err
+    try:
+        assert df.isnull().sum().sum() == 0
+        logging.info("imported datafarme has no null values")
+    except AssertionError as err:
+        logging.error("There are null values in your dataframe!")
         raise err
 
-def test_eda(perform_eda):
+
+def test_eda(data):
     '''
     test perform eda function
+    input: dataset in pandas dataframe format
+    output: None
     '''
+    perform_eda(data)
     try:
-        df = cls.import_data("./data/bank_data.csv")
-        perform_eda(df)
-        logging.info("Testing perform_eda: SUCCESS")
-    except Exception as e:
-        logging.error(f"Testing perform_eda: {e}")
-        raise e
-
-def test_encoder_helper(encoder_helper):
-    '''
-    test encoder helper
-    '''
-    try:
-        df = cls.import_data("./data/bank_data.csv")
-        categories = ['Gender', 'Education_Level', 'Marital_Status', 'Income_Category', 'Card_Category']
-        response = 'Churn'
-        cls.encoder_helper(df, categories, response)
-        logging.info("Testing encoder_helper: SUCCESS")
-    except Exception as e:
-        logging.error(f"Testing encoder_helper: {e}")
-        raise e
-
-def test_perform_feature_engineering(perform_feature_engineering):
-    '''
-    test perform_feature_engineering
-    '''
-    try:
-        df = cls.import_data("./data/bank_data.csv")
-        X_train, X_test, y_train, y_test = cls.perform_feature_engineering(df, 'Churn')
-        assert X_train.shape[0] > 0
-        assert X_train.shape[1] > 0
-        assert X_test.shape[0] > 0
-        assert X_test.shape[1] > 0
-        assert y_train.shape[0] > 0
-        assert y_test.shape[0] > 0
-        logging.info("Testing perform_feature_engineering: SUCCESS")
+        assert len(os.listdir(IMG_PATH)) > 0
+        assert len(os.listdir(IMG_PATH)) == 5
+        logging.info('All EDA plots were saved to image directory')
     except AssertionError as err:
-        logging.error("Testing perform_feature_engineering: Failed")
+        logging.error('Not all plots were saved to image directory')
         raise err
 
-def test_train_models(train_models):
+
+def test_encoder_categorical_features(data):
+    '''
+    test encoder helper
+    input: dataset in pandas dataframe format
+    output: None
+    '''
+    df = data
+    cols_list = list(df.columns)
+    df = encode_categorical_features(df, cat_columns, response=None)
+    new_cols_list = list(df.columns)
+    columns_generated = list(set(new_cols_list) - set(cols_list))
+    # check if columns were generated
+    try:
+        assert len(columns_generated) == len(cat_columns)
+    except AssertionError as err:
+        logging.error(
+            'Errors in categorical features encoder. Columns not generated properly')
+        raise err
+    # check if there are no nulls in data
+    try:
+        assert df.isnull().sum().sum() == 0
+    except AssertionError as err:
+        logging.error('df contains null values')
+        raise err
+
+
+def test_perform_feature_engineering(data):
+    """
+	test perform_feature_engineering
+	input: dataset in pandas dataframe format
+	output: None
+	"""
+    # check the shape of the dataframe
+    df = data
+    x_train, x_test, y_train, y_test = perform_feature_engineering(df, None)
+    try:
+        assert x_train.shape[1] == df[keep_cols].shape[1]
+    except AssertionError as err:
+        logging.error("Not all categorical columns were encoded")
+        raise err
+
+
+def test_train_models():
     '''
     test train_models
     '''
     try:
-        df = cls.import_data("./data/bank_data.csv")
-        X_train, X_test, y_train, y_test = cls.perform_feature_engineering(df, 'Churn')
-        cls.train_models(X_train, X_test, y_train, y_test)
-        logging.info("Testing train_models: SUCCESS")
-    except Exception as e:
-        logging.error(f"Testing train_models: {e}")
-        raise e
-
-if __name__ == "__main__":
-    test_import(cls.import_data)
-    test_eda(cls.perform_eda)
-    test_encoder_helper(cls.encoder_helper)
-    test_perform_feature_engineering(cls.perform_feature_engineering)
-    test_train_models(cls.train_models)
+        joblib.load(os.path.join(MODEL_PATH, 'rfc_model.pkl'))
+        joblib.load(os.path.join(MODEL_PATH, 'lr_model.pkl'))
+        logging.info('Testing train_models: SUCCESS')
+    except FileNotFoundError as err:
+        logging.error('Testing train_models: the file is not found')
+        raise err
