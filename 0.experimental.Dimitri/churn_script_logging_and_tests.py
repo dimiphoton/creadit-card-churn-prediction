@@ -1,6 +1,6 @@
 """
-Author: Dimitri MARCHAND
-Date Created: 23 Feb 2022
+Author: Yuliia Khomenko
+Date Created: 3 Apr 2022
 This file contains tests of the main functions of churn_library.py
 """
 import os
@@ -142,4 +142,4 @@ def test_train_models():
         logging.info('Testing train_models: SUCCESS')
     except FileNotFoundError as err:
         logging.error('Testing train_models: the file is not found')
-        raise err
+        raise 
