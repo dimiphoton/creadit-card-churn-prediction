@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
 
@@ -63,7 +63,8 @@ def prepro_transform(X):
 class DataProcessor:
     def __init__(self, csv_file_path='../data/customer_churn_data.csv'):
         self.df = pd.read_csv(csv_file_path,index_col=0)
-        self.isTransformed=False
+        self.is_scaled=False
+        self.is_encoded=False
 
         self.scaler = StandardScaler()
         self.encoder=OneHotEncoder(drop='first')
@@ -73,18 +74,38 @@ class DataProcessor:
         self.num_cols = self.X.select_dtypes(include=['int', 'float']).columns
         self.cat_cols = self.X.select_dtypes(include=['object']).columns
 
+        self.num_transformer = ColumnTransformer(transformers=[('num', self.scaler, self.num_cols)])
+        self.cat_transformer = ColumnTransformer(transformers=[('cat', self.encoder, self.cat_cols)])
+
         self.split_train_test()
-        #self.balance()
+
     
     def split_train_test(self, test_size=0.3, random_state=42):
+        print("the data is splitted, and transformers are fitted on the training set")
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=test_size, random_state=random_state)
-    
+        self.num_transformer.fit(self.X_train[self.num_cols])
+        self.cat_transformer.fit(self.X_train[self.cat_cols])
 
-    def scale(self, data, reverse=False):
-        scaler = self.scaler()
-        scaler.fit(data[self.transformnum_cols])
-        scaled = scaler.transform(data[self.num_cols])
-        scaled = pd.DataFrame(scaled, columns=self.num_cols)
+
+    def scale(self,reverse=False):
+        
+
+        if not reverse:
+            self.X_train[self.num_cols] = self.num_transformer.transform(self.X_train[self.num_cols])
+            self.X_test[self.num_cols] = self.num_transformer.transform(self.X_test[self.num_cols])
+            self.is_scaled=True
+
+        else:
+            #self.X_train[self.num_cols] = self.num_transformer.inverse_transform(self.X_train[self.num_cols])
+            #self.X_test[self.num_cols] = self.num_transformer.inverse_transform(self.X_test[self.num_cols])
+            X_test_unscaled_num = pd.DataFrame(self.num_transformer.named_transformers_['num'].inverse_transform(self.X_test[self.num_cols]), columns=self.num_cols,index=self.X_test.index)
+            self.X_test = pd.concat([X_test_unscaled_num, self.X_test[self.cat_cols]], axis=1)
+
+    def encode(self,reverse=False):
+        if not reverse:
+            self.X_train[self.cat_cols] = self.transformer_encoder(self.X_train)
+            self.X_test[self.cat_cols] = self.transformer_encoder(self.X_test)
+
 
     def transform(self,operation,reverse=False):
 
